@@ -2,6 +2,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import f1_score, accuracy_score
 from .hdc_utils import cosine_similarity, sign, bundle
+import time
 
 class HDCClassifier:
     def __init__(self):
@@ -34,10 +35,11 @@ class HDCClassifier:
         return np.array(predictions)
 
 def run_experiment(graphs, labels, encoder, centrality_metric, n_repetitions=10):
-    """Runs the full experiment pipeline n times."""
+    """Runs the full experiment pipeline n times and measures total time."""
     accuracies = []
     f1_scores = []
     
+    start_time = time.time()
     for i in range(n_repetitions):
         # 1. Prepare library (randomized per repetition)
         encoder.prepare_library(graphs)
@@ -57,10 +59,14 @@ def run_experiment(graphs, labels, encoder, centrality_metric, n_repetitions=10)
         # 5. Metrics
         accuracies.append(accuracy_score(y_test, y_pred))
         f1_scores.append(f1_score(y_test, y_pred, average='weighted'))
+    
+    end_time = time.time()
+    total_time = end_time - start_time
         
     return {
         'accuracy_mean': np.mean(accuracies),
         'accuracy_std': np.std(accuracies),
         'f1_mean': np.mean(f1_scores),
-        'f1_std': np.std(f1_scores)
+        'f1_std': np.std(f1_scores),
+        'total_time_sec': total_time
     }

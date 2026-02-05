@@ -38,4 +38,17 @@ def load_tudataset(data_dir, dataset_name):
     with open(f"{base_path}_graph_labels.txt", 'r') as f:
         labels = [int(line.strip()) for line in f]
         
+    # 4. Load node labels if they exist
+    node_labels = None
+    node_labels_path = f"{base_path}_node_labels.txt"
+    if os.path.exists(node_labels_path):
+        with open(node_labels_path, 'r') as f:
+            node_labels = [int(line.strip()) for line in f]
+        
+        # Add labels as node attributes
+        for i, label in enumerate(node_labels):
+            g_id = node_to_graph[i]
+            # Nodes are i+1
+            graphs[g_id-1].nodes[i+1]['label'] = label
+            
     return graphs, labels
