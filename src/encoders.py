@@ -1,4 +1,4 @@
-from .hdc_utils import bind, bundle, sign, generate_library
+from .hdc_utils import bind, bundle, sign, generate_library, generate_level_library
 from .centrality import calculate_centrality, rank_nodes
 import numpy as np
 
@@ -92,3 +92,144 @@ class GraphOrderEncoder(BaseEncoder):
         # 3. Direct Vertex Sum (Bundling)
         graph_vector = bundle(node_vectors)
         return sign(graph_vector)
+
+class GraphHDLevelEncoder(BaseEncoder):
+    """
+    GraphHD Level: Centality Ranking -> Level Mapping -> Edge Binding -> Bundling
+    Uses Level Hypervectors for centrality encoding.
+    """
+    def __init__(self, dim=10000, num_levels=100):
+        super().__init__(dim)
+        self.num_levels = num_levels
+
+    def prepare_library(self, graphs):
+        super().prepare_library(graphs)
+        # Overwrite random library with level library
+        self.library = generate_level_library(self.num_levels, self.dim)
+
+    def encode(self, G, centrality_metric='pagerank'):
+        # 1. Rank nodes by centrality
+        centrality_data = calculate_centrality(G, metric=centrality_metric)
+        sorted_nodes = rank_nodes(centrality_data)
+        
+        # 2. Map nodes to level hypervectors
+        node_to_hv = {}
+        num_nodes = len(sorted_nodes)
+        
+        for i, node in enumerate(sorted_nodes):
+            # Map rank to level index
+            if num_nodes > 1:
+                level_idx = i * (self.num_levels - 1) // (num_nodes - 1)
+            else:
+                level_idx = 0
+                
+            hv = self.library[level_idx]
+            
+            # Incorporate label if available
+            node_label = G.nodes[node].get('label')
+            if node_label is not None and node_label in self.label_library:
+                hv = bind(hv, self.label_library[node_label])
+            
+            node_to_hv[node] = hv
+            
+        # 3. Edge Encoding (Binding)
+        edge_vectors = []
+        for u, v in G.edges():
+            edge_hv = bind(node_to_hv[u], node_to_hv[v])
+            edge_vectors.append(edge_hv)
+            
+        if not edge_vectors:
+            node_vectors = list(node_to_hv.values())
+            if not node_vectors:
+                return np.zeros(self.dim, dtype=np.int8)
+            return sign(bundle(node_vectors))
+            
+        # 4. Graph Bundling
+        all_vectors = list(node_to_hv.values()) + edge_vectors
+        return sign(bundle(all_vectors))
+
+class GraphOrderLevelEncoder(BaseEncoder):
+    """
+    GraphOrder Level: Centrality Ranking -> Level Mapping -> Direct Vertex Sum
+    Uses Level Hypervectors for centrality encoding.
+    """
+    def __init__(self, dim=10000, num_levels=100):
+        super().__init__(dim)
+        self.num_levels = num_levels
+
+    def prepare_library(self, graphs):
+        super().prepare_library(graphs)
+        # Overwrite random library with level library
+        self.library = generate_level_library(self.num_levels, self.dim)
+
+    def encode(self, G, centrality_metric='pagerank'):
+        # 1. Rank nodes
+        centrality_data = calculate_centrality(G, metric=centrality_metric)
+        sorted_nodes = rank_nodes(centrality_data)
+        
+        # 2. Map to level HVs
+        node_vectors = []
+        num_nodes = len(sorted_nodes)
+        
+        for i, node in enumerate(sorted_nodes):
+            if num_nodes > 1:
+                level_idx = i * (self.num_levels - 1) // (num_nodes - 1)
+            else:
+                level_idx = 0
+                
+            hv = self.library[level_idx]
+            
+            node_label = G.nodes[node].get('label')
+            if node_label is not None and node_label in self.label_library:
+                hv = bind(hv, self.label_library[node_label])
+                
+            node_vectors.append(hv)
+            
+        if not node_vectors:
+            return np.zeros(self.dim, dtype=np.int8)
+            
+        # 3. Bundling
+        return sign(bundle(node_vectors))
+
+class GraphOrderLevelEncoder(BaseEncoder):
+    """
+    GraphOrder Level: Centrality Ranking -> Level Mapping -> Direct Vertex Sum
+    Uses Level Hypervectors for centrality encoding.
+    """
+    def __init__(self, dim=10000, num_levels=100):
+        super().__init__(dim)
+        self.num_levels = num_levels
+
+    def prepare_library(self, graphs):
+        super().prepare_library(graphs)
+        # Overwrite random library with level library
+        self.library = generate_level_library(self.num_levels, self.dim)
+
+    def encode(self, G, centrality_metric='pagerank'):
+        # 1. Rank nodes
+        centrality_data = calculate_centrality(G, metric=centrality_metric)
+        sorted_nodes = rank_nodes(centrality_data)
+        
+        # 2. Map to level HVs
+        node_vectors = []
+        num_nodes = len(sorted_nodes)
+        
+        for i, node in enumerate(sorted_nodes):
+            if num_nodes > 1:
+                level_idx = i * (self.num_levels - 1) // (num_nodes - 1)
+            else:
+                level_idx = 0
+                
+            hv = self.library[level_idx]
+            
+            node_label = G.nodes[node].get('label')
+            if node_label is not None and node_label in self.label_library:
+                hv = bind(hv, self.label_library[node_label])
+                
+            node_vectors.append(hv)
+            
+        if not node_vectors:
+            return np.zeros(self.dim, dtype=np.int8)
+            
+        # 3. Bundling
+        return sign(bundle(node_vectors))
