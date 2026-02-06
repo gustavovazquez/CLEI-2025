@@ -96,10 +96,10 @@ def main():
 
     # Configuración de base de datos solicitada
     #datasets = ['NCI1', 'PTC_FM', 'DD']
-    datasets = ['MUTAG', 'ENZYMES', 'PROTEINS']
+    datasets = ['MUTAG', 'PROTEINS', 'ENZYMES', 'NCI1', 'DD', 'PTC_FM']
     encoders = ['GraphHD', 'GraphOrder', 'GraphHDLevelPerm']
     # Reutilizamos métricas comunes o puedes ajustar
-    metrics = ['eigenvector', 'degree', 'pagerank']
+    metrics = ['pagerank', 'degree', 'closeness', 'betweenness', 'eigenvector', 'katz']
     
     print(f"Usando {args.workers} workers paralelos")
     print(f"Datasets: {datasets}")
