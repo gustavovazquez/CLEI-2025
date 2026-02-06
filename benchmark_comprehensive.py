@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 import argparse
 from src.dataset_loader import load_tudataset
-from src.encoders import GraphHDEncoder, GraphOrderEncoder, GraphHDLevelEncoder, GraphOrderLevelEncoder, GraphHDLevelPermEncoder
+from src.encoders import GraphHDEncoder, GraphOrderEncoder, GraphHDLevelPermEncoder
 from src.experiments import run_experiment
 
 def main():
@@ -18,12 +18,10 @@ def main():
     datasets = ['MUTAG', 'PROTEINS', 'ENZYMES', 'NCI1', 'DD', 'PTC_FM']
     metrics = ['pagerank', 'degree', 'closeness', 'betweenness', 'eigenvector', 'katz']
     
-    # Initialize encoders
+    # Initialize encoders (solo GraphHD, GraphOrder y GraphHDLevelPerm)
     encoder_configs = {
         'GraphHD': GraphHDEncoder,
         'GraphOrder': GraphOrderEncoder,
-        'GraphHDLevel': GraphHDLevelEncoder,
-        'GraphOrderLevel': GraphOrderLevelEncoder,
         'GraphHDLevelPerm': GraphHDLevelPermEncoder
     }
 
