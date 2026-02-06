@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 import argparse
 from src.dataset_loader import load_tudataset
-from src.encoders import GraphHDEncoder, GraphOrderEncoder, GraphHDLevelEncoder, GraphOrderLevelEncoder
+from src.encoders import GraphHDEncoder, GraphOrderEncoder, GraphHDLevelEncoder, GraphOrderLevelEncoder, GraphHDLevelPermEncoder
 from src.experiments import run_experiment
 
 def main():
@@ -23,7 +23,8 @@ def main():
         'GraphHD': GraphHDEncoder,
         'GraphOrder': GraphOrderEncoder,
         'GraphHDLevel': GraphHDLevelEncoder,
-        'GraphOrderLevel': GraphOrderLevelEncoder
+        'GraphOrderLevel': GraphOrderLevelEncoder,
+        'GraphHDLevelPerm': GraphHDLevelPermEncoder
     }
 
     # Load existing results for resumability

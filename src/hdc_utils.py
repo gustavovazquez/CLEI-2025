@@ -34,6 +34,10 @@ def bind(hv1, hv2):
     """Binds two hypervectors using element-wise multiplication."""
     return hv1 * hv2
 
+def permute(hv, shift=1):
+    """Permutes a hypervector by cyclic shift."""
+    return np.roll(hv, shift)
+
 def bundle(hvs):
     """Bundles multiple hypervectors using element-wise sum with promotion to avoid overflow."""
     if not hvs:

@@ -1,4 +1,4 @@
-from .hdc_utils import bind, bundle, sign, generate_library, generate_level_library
+from .hdc_utils import bind, bundle, sign, generate_library, generate_level_library, permute
 from .centrality import calculate_centrality, rank_nodes
 import numpy as np
 
@@ -233,3 +233,59 @@ class GraphOrderLevelEncoder(BaseEncoder):
             
         # 3. Bundling
         return sign(bundle(node_vectors))
+
+class GraphHDLevelPermEncoder(BaseEncoder):
+    """
+    GraphHD Level with Permutation: Uses permute in edge binding to avoid identity collapse.
+    This encoder fixes the issue where similar Level HVs produce near-identity edge vectors.
+    """
+    def __init__(self, dim=10000, num_levels=100):
+        super().__init__(dim)
+        self.num_levels = num_levels
+
+    def prepare_library(self, graphs):
+        super().prepare_library(graphs)
+        # Overwrite random library with level library
+        self.library = generate_level_library(self.num_levels, self.dim)
+
+    def encode(self, G, centrality_metric='pagerank'):
+        # 1. Rank nodes by centrality
+        centrality_data = calculate_centrality(G, metric=centrality_metric)
+        sorted_nodes = rank_nodes(centrality_data)
+        
+        # 2. Map nodes to level hypervectors
+        node_to_hv = {}
+        num_nodes = len(sorted_nodes)
+        
+        for i, node in enumerate(sorted_nodes):
+            # Map rank to level index
+            if num_nodes > 1:
+                level_idx = i * (self.num_levels - 1) // (num_nodes - 1)
+            else:
+                level_idx = 0
+                
+            hv = self.library[level_idx]
+            
+            # Incorporate label if available
+            node_label = G.nodes[node].get('label')
+            if node_label is not None and node_label in self.label_library:
+                hv = bind(hv, self.label_library[node_label])
+            
+            node_to_hv[node] = hv
+            
+        # 3. Edge Encoding with Permutation (fixes identity collapse)
+        edge_vectors = []
+        for u, v in G.edges():
+            # Use permutation to break symmetry: Edge = permute(HV_u) * HV_v
+            edge_hv = bind(permute(node_to_hv[u]), node_to_hv[v])
+            edge_vectors.append(edge_hv)
+            
+        if not edge_vectors:
+            node_vectors = list(node_to_hv.values())
+            if not node_vectors:
+                return np.zeros(self.dim, dtype=np.int8)
+            return sign(bundle(node_vectors))
+            
+        # 4. Graph Bundling
+        all_vectors = list(node_to_hv.values()) + edge_vectors
+        return sign(bundle(all_vectors))
