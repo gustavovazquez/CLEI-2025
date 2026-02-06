@@ -95,7 +95,8 @@ def main():
     args = parser.parse_args()
 
     # Configuración de base de datos solicitada
-    datasets = ['NCI1', 'PTC_FM', 'DD']
+    #datasets = ['NCI1', 'PTC_FM', 'DD']
+    datasets = ['MUTAG', 'ENZYMES', 'PROTEINS']
     encoders = ['GraphHD', 'GraphOrder', 'GraphHDLevelPerm']
     # Reutilizamos métricas comunes o puedes ajustar
     metrics = ['eigenvector', 'degree', 'pagerank']
