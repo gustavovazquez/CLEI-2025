@@ -1,149 +1,187 @@
-import numpy as np
+import os
+import torch
 from abc import ABC, abstractmethod
+
+# Auto-detect device (set HDC_FORCE_CPU=1 to force CPU)
+_force_cpu = os.environ.get('HDC_FORCE_CPU', '0') == '1'
+DEVICE = torch.device('cpu') if _force_cpu else torch.device(
+    'cuda' if torch.cuda.is_available() else 'cpu'
+)
+print(f"[HDC] Using device: {DEVICE}")
+
 
 class Hypervector(ABC):
     """Abstract base class for all Hypervector representations."""
-    
+
     def __init__(self, data):
-        self.data = data
-        self.dim = len(data)
+        if isinstance(data, torch.Tensor):
+            self.data = data.to(DEVICE)
+        else:
+            self.data = torch.tensor(data, device=DEVICE)
+        self.dim = self.data.shape[0]
 
     @abstractmethod
     def bind(self, other):
-        """Binding operation (XOR for binary, Multiplication for float)."""
         pass
 
     @abstractmethod
     def bundle(self, others):
-        """Bundling operation (Majority for binary, Sum/Normalization for float)."""
+        pass
+
+    @classmethod
+    @abstractmethod
+    def batch_bundle(cls, stacked_data):
+        """Bundle a batch of raw tensors (N, D) into a single HV."""
         pass
 
     @abstractmethod
     def permute(self, shift=1):
-        """Cyclic shift permutation."""
         pass
 
     @abstractmethod
     def similarity(self, other):
-        """Similarity metric (Hamming for binary, Cosine for float)."""
         pass
 
     @classmethod
     @abstractmethod
     def random(cls, dim):
-        """Generates a random hypervector of the given dimension."""
         pass
 
+
 class BinaryHypervector(Hypervector):
-    """
-    Binary Hypervector Representation {0, 1}^D.
-    Based on HSC (Hyperdimensional Semantic Computing) / BSC (Binary Spatter Codes).
-    """
-    
+    """Binary Hypervector {0, 1}^D — BSC (Binary Spatter Codes)."""
+
+    def __init__(self, data):
+        if isinstance(data, torch.Tensor):
+            data = data.to(torch.int8)
+        else:
+            data = torch.tensor(data, dtype=torch.int8)
+        super().__init__(data)
+
     def bind(self, other):
-        # XOR binding
-        return BinaryHypervector(np.bitwise_xor(self.data, other.data))
+        return BinaryHypervector(torch.bitwise_xor(self.data, other.data))
 
     def bundle(self, others):
-        # Majority rule
-        all_data = [self.data] + [o.data for o in others]
-        stacked = np.stack(all_data)
-        summed = np.sum(stacked, axis=0)
-        threshold = len(all_data) / 2
-        # Majority: if sum > threshold -> 1, if sum < threshold -> 0. 
-        # For ties, we can pick random or 0.
-        result = (summed > threshold).astype(np.int8)
-        # Handle ties randomly to maintain properties
-        ties = summed == threshold
-        if np.any(ties):
-            result[ties] = np.random.choice([0, 1], size=np.sum(ties))
-        return BinaryHypervector(result)
+        all_data = torch.stack([self.data] + [o.data for o in others])
+        return BinaryHypervector.batch_bundle(all_data)
+
+    @classmethod
+    def batch_bundle(cls, stacked_data):
+        n = stacked_data.shape[0]
+        if n == 1:
+            return cls(stacked_data[0].clone())
+        summed = stacked_data.to(torch.int32).sum(dim=0)
+        threshold = n / 2.0
+        result = (summed > threshold).to(torch.int8)
+        ties = (summed.float() == threshold)
+        if ties.any():
+            result[ties] = torch.randint(
+                0, 2, (ties.sum().item(),), device=stacked_data.device, dtype=torch.int8
+            )
+        return cls(result)
 
     def permute(self, shift=1):
-        return BinaryHypervector(np.roll(self.data, shift))
+        return BinaryHypervector(torch.roll(self.data, shift))
 
     def similarity(self, other):
-        # Hamming Similarity: 1 - HammingDistance/dim
-        # Which is equivalent to (dim - XOR_sum) / dim
-        xor_res = np.bitwise_xor(self.data, other.data)
-        hamming_dist = np.sum(xor_res)
+        xor_res = torch.bitwise_xor(self.data, other.data)
+        hamming_dist = xor_res.sum().item()
         return 1.0 - (hamming_dist / self.dim)
 
     @classmethod
     def random(cls, dim):
-        return cls(np.random.randint(0, 2, size=dim, dtype=np.int8))
+        return cls(torch.randint(0, 2, (dim,), device=DEVICE, dtype=torch.int8))
+
 
 class FloatHypervector(Hypervector):
-    """
-    Real-valued Hypervector Representation R^D.
-    Based on FHRR (Fractional Binding, Hardcoded Representations) or similar VSAs.
-    Elements are typically drawn from a normal distribution and normalized.
-    """
-    
+    """Real-valued Hypervector R^D — Normalized Gaussian."""
+
+    def __init__(self, data):
+        if isinstance(data, torch.Tensor):
+            data = data.to(torch.float32)
+        else:
+            data = torch.tensor(data, dtype=torch.float32)
+        super().__init__(data)
+
     def bind(self, other):
-        # Element-wise multiplication
         return FloatHypervector(self.data * other.data)
 
     def bundle(self, others):
-        # Normalized sum
-        all_data = [self.data] + [o.data for o in others]
-        summed = np.sum(all_data, axis=0)
-        norm = np.linalg.norm(summed)
+        all_data = torch.stack([self.data] + [o.data for o in others])
+        return FloatHypervector.batch_bundle(all_data)
+
+    @classmethod
+    def batch_bundle(cls, stacked_data):
+        n = stacked_data.shape[0]
+        if n == 1:
+            return cls(stacked_data[0].clone())
+        summed = stacked_data.sum(dim=0)
+        norm = torch.linalg.norm(summed)
         if norm > 0:
-            summed /= norm
-        return FloatHypervector(summed.astype(np.float32))
+            summed = summed / norm
+        return cls(summed)
 
     def permute(self, shift=1):
-        return FloatHypervector(np.roll(self.data, shift))
+        return FloatHypervector(torch.roll(self.data, shift))
 
     def similarity(self, other):
-        # Cosine Similarity
-        dot = np.dot(self.data, other.data)
-        norm_a = np.linalg.norm(self.data)
-        norm_b = np.linalg.norm(other.data)
+        dot = torch.dot(self.data, other.data)
+        norm_a = torch.linalg.norm(self.data)
+        norm_b = torch.linalg.norm(other.data)
         if norm_a == 0 or norm_b == 0:
             return 0.0
-        return dot / (norm_a * norm_b)
+        return (dot / (norm_a * norm_b)).item()
 
     @classmethod
     def random(cls, dim):
-        # For float VSAs, elements are often i.i.d. Gaussian or Uniform
-        # Here we use standard normal and normalize
-        vec = np.random.randn(dim).astype(np.float32)
-        vec /= np.linalg.norm(vec)
+        vec = torch.randn(dim, device=DEVICE, dtype=torch.float32)
+        vec = vec / torch.linalg.norm(vec)
         return cls(vec)
 
+
 class BipolarHypervector(Hypervector):
-    """
-    Bipolar Hypervector Representation {-1, 1}^D.
-    Commonly used in MAP (Multiply-Add-Permute) and SDM.
-    """
-    
+    """Bipolar Hypervector {-1, 1}^D — MAP (Multiply-Add-Permute)."""
+
+    def __init__(self, data):
+        if isinstance(data, torch.Tensor):
+            data = data.to(torch.int8)
+        else:
+            data = torch.tensor(data, dtype=torch.int8)
+        super().__init__(data)
+
     def bind(self, other):
-        # Multiplication is the binding operator for bipolar vectors
         return BipolarHypervector(self.data * other.data)
 
     def bundle(self, others):
-        # Sum and then sign
-        all_data = [self.data] + [o.data for o in others]
-        stacked = np.stack(all_data)
-        summed = np.sum(stacked, axis=0)
-        # Sign function: sum >= 0 -> 1, sum < 0 -> -1
-        # Handle ties randomly
-        result = np.where(summed > 0, 1, -1).astype(np.int8)
-        ties = summed == 0
-        if np.any(ties):
-            result[ties] = np.random.choice([-1, 1], size=np.sum(ties))
-        return BipolarHypervector(result)
+        all_data = torch.stack([self.data] + [o.data for o in others])
+        return BipolarHypervector.batch_bundle(all_data)
+
+    @classmethod
+    def batch_bundle(cls, stacked_data):
+        n = stacked_data.shape[0]
+        if n == 1:
+            return cls(stacked_data[0].clone())
+        summed = stacked_data.to(torch.int32).sum(dim=0)
+        result = torch.where(
+            summed > 0,
+            torch.tensor(1, dtype=torch.int8, device=stacked_data.device),
+            torch.tensor(-1, dtype=torch.int8, device=stacked_data.device)
+        )
+        ties = (summed == 0)
+        if ties.any():
+            result[ties] = (
+                torch.randint(0, 2, (ties.sum().item(),),
+                              device=stacked_data.device, dtype=torch.int8) * 2 - 1
+            )
+        return cls(result)
 
     def permute(self, shift=1):
-        return BipolarHypervector(np.roll(self.data, shift))
+        return BipolarHypervector(torch.roll(self.data, shift))
 
     def similarity(self, other):
-        # Cosine Similarity is efficient for bipolar vectors: DotProduct / D
-        dot = np.dot(self.data.astype(np.float32), other.data.astype(np.float32))
-        return dot / self.dim
+        dot = torch.dot(self.data.float(), other.data.float())
+        return (dot / self.dim).item()
 
     @classmethod
     def random(cls, dim):
-        return cls(np.random.choice([-1, 1], size=dim).astype(np.int8))
+        return cls(torch.randint(0, 2, (dim,), device=DEVICE, dtype=torch.int8) * 2 - 1)
