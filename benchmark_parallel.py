@@ -55,6 +55,7 @@ def run_single_job(job_args):
             'accuracy_mean': result['accuracy_mean'],
             'accuracy_std': result['accuracy_std'],
             'total_time_sec': result['total_time_sec'],
+            'avg_time_per_rep': result['total_time_sec'] / n_rep,
             'status': 'success'
         }
         
@@ -91,6 +92,37 @@ def save_result(result, output_file):
     with csv_lock:
         header = not os.path.exists(output_file)
         df.to_csv(output_file, mode='a', header=header, index=False)
+
+def print_summary_table(output_file):
+    """Lee el CSV y muestra una tabla bonita por consola."""
+    if not os.path.exists(output_file):
+        return
+    
+    try:
+        with csv_lock:
+            df = pd.read_csv(output_file)
+        
+        if df.empty:
+            return
+            
+        print("\n" + "="*85)
+        print(f" {'REPORTE DE PROGRESO':^83}")
+        print("="*85)
+        
+        # Formatear columnas para visualización
+        report_df = df.copy()
+        report_df['F1 Score (Mean ± SD)'] = report_df.apply(
+            lambda x: f"{x['f1_mean']:.4f} ± {x['f1_std']:.4f}", axis=1
+        )
+        report_df['Avg Time/Run'] = report_df['avg_time_per_rep'].apply(lambda x: f"{x:.2f}s")
+        
+        # Seleccionar y mostrar
+        display_cols = ['Dataset', 'Encoder', 'Centrality', 'F1 Score (Mean ± SD)', 'Avg Time/Run']
+        print(report_df[display_cols].to_string(index=False))
+        print("="*85 + "\n")
+        
+    except Exception as e:
+        pass # Silencioso para no romper el flujo principal
 
 def main():
     parser = argparse.ArgumentParser(description='Benchmark Paralelo GraphHD')
@@ -153,13 +185,14 @@ def main():
             
             try:
                 result = future.result()
-                
                 if result['status'] == 'success':
                     save_result(result, args.output)
                     completed_count += 1
                     print(f"✓ [{completed_count}/{len(pending_jobs)}] "
                           f"{ds}/{enc}/{met}: F1={result['f1_mean']:.4f} "
                           f"({result['total_time_sec']:.1f}s)")
+                    # Mostrar tabla actualizada
+                    print_summary_table(args.output)
                 else:
                     error_count += 1
                     print(f"✗ {ds}/{enc}/{met}: {result.get('error_msg', 'Unknown error')}")

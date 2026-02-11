@@ -1,7 +1,7 @@
 import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import f1_score, accuracy_score
-from .hdc_utils import cosine_similarity, sign, bundle
+from .hdc_utils import bundle
 import time
 
 class HDCClassifier:
@@ -16,8 +16,8 @@ class HDCClassifier:
         for label in unique_labels:
             class_vectors = [X_train[i] for i, l in enumerate(y_train) if l == label]
             if class_vectors:
-                bundled = bundle(class_vectors)
-                self.class_hvs[label] = sign(bundled)
+                # bundle() returns a Hypervector object which is already binarized/normalized
+                self.class_hvs[label] = bundle(class_vectors)
 
     def predict(self, X_test):
         """Predicts class labels for test graph vectors."""
@@ -27,7 +27,7 @@ class HDCClassifier:
             max_sim = -1.1
             
             for label, class_hv in self.class_hvs.items():
-                sim = cosine_similarity(x, class_hv)
+                sim = x.similarity(class_hv)
                 if sim > max_sim:
                     max_sim = sim
                     best_label = label
