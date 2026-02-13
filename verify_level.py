@@ -1,18 +1,16 @@
 import numpy as np
-from src.hdc_utils import generate_level_library, cos_similarity
+from src.hdc_utils import generate_level_library, cosine_similarity
 from src.encoders import GraphHDLevelEncoder
-from src.models import BinaryHypervector
 import networkx as nx
 
 def test_level_similarity():
     print("Testing Level Hypervector Similarity...")
     dim = 10000
     num_levels = 100
-    # Uses default binary representation
-    library = generate_level_library(num_levels, dim, repr_type='binary')
+    library = generate_level_library(num_levels, dim)
     
     # Check similarity between Level 0 and others
-    similarities = [library[0].similarity(library[i]) for i in range(num_levels)]
+    similarities = [cosine_similarity(library[0], library[i]) for i in range(num_levels)]
     
     print(f"Similarity Level 0 to 1: {similarities[1]:.4f}")
     print(f"Similarity Level 0 to 50: {similarities[50]:.4f}")
@@ -34,18 +32,14 @@ def test_encoder_run():
     for n in G.nodes:
         G.nodes[n]['label'] = np.random.randint(0, 3)
         
-    encoder = GraphHDLevelEncoder(dim=10000, num_levels=10, repr_type='binary')
+    encoder = GraphHDLevelEncoder(dim=10000, num_levels=10)
     # Mock prepare_library
-    encoder.label_library = {
-        0: BinaryHypervector.random(10000), 
-        1: BinaryHypervector.random(10000), 
-        2: BinaryHypervector.random(10000)
-    }
-    encoder.library = generate_level_library(10, 10000, repr_type='binary')
+    encoder.label_library = {0: np.ones(10000), 1: -np.ones(10000), 2: np.ones(10000)}
+    encoder.library = generate_level_library(10, 10000)
     
     try:
         hv = encoder.encode(G, centrality_metric='pagerank')
-        print(f"Encoded Graph HV dim: {hv.dim}")
+        print(f"Encoded Graph HV shape: {hv.shape}")
         print("Encoder execution successful.")
     except Exception as e:
         print(f"Encoder execution failed: {e}")

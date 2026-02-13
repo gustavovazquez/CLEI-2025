@@ -2,8 +2,12 @@ import numpy as np
 import torch
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import f1_score, accuracy_score
+<<<<<<< HEAD
 from .hdc_utils import bundle
 from .models import BinaryHypervector, FloatHypervector, BipolarHypervector
+=======
+from .hdc_utils import cosine_similarity, sign, bundle
+>>>>>>> parent of 344d83b (scripts finales)
 import time
 
 
@@ -19,6 +23,7 @@ class HDCClassifier:
         for label in unique_labels:
             class_vectors = [X_train[i] for i, l in enumerate(y_train) if l == label]
             if class_vectors:
+<<<<<<< HEAD
                 self.class_hvs[label] = bundle(class_vectors)
 
     def predict(self, X_test):
@@ -62,6 +67,25 @@ class HDCClassifier:
         best_indices = similarities.argmax(dim=1).cpu().numpy()
         return np.array([labels[i] for i in best_indices])
 
+=======
+                bundled = bundle(class_vectors)
+                self.class_hvs[label] = sign(bundled)
+
+    def predict(self, X_test):
+        """Predicts class labels for test graph vectors."""
+        predictions = []
+        for x in X_test:
+            best_label = None
+            max_sim = -1.1
+            
+            for label, class_hv in self.class_hvs.items():
+                sim = cosine_similarity(x, class_hv)
+                if sim > max_sim:
+                    max_sim = sim
+                    best_label = label
+            predictions.append(best_label)
+        return np.array(predictions)
+>>>>>>> parent of 344d83b (scripts finales)
 
 def run_experiment(graphs, labels, encoder, centrality_metric, n_repetitions=10):
     """Runs the full experiment pipeline n times and measures total time."""

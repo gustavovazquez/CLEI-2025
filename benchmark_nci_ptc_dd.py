@@ -88,7 +88,7 @@ def main():
                         help='Directorio de datos')
     parser.add_argument('--dim', type=int, default=10000, 
                         help='Dimensión de hipervectores')
-    parser.add_argument('--n_rep', type=int, default=50, 
+    parser.add_argument('--n_rep', type=int, default=100, 
                         help='Número de repeticiones por experimento')
     parser.add_argument('--workers', type=int, default=16, 
                         help='Número de workers (default: 4)')
