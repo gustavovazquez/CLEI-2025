@@ -26,13 +26,13 @@ def run_single_job(job_args):
     
     # Importar aquí para evitar problemas de pickling en multiprocessing
     from src.dataset_loader import load_tudataset
-    from src.encoders import GraphHDEncoder, GraphOrderEncoder, GraphHDLevelPermEncoder
+    from src.encoders import GraphHDEncoder, GraphHDOrderEncoder, GraphHDLevelEncoder
     from src.experiments import run_experiment
     
     encoder_classes = {
         'GraphHD': GraphHDEncoder,
-        'GraphOrder': GraphOrderEncoder,
-        'GraphHDLevelPerm': GraphHDLevelPermEncoder
+        'GraphOrder': GraphHDOrderEncoder,
+        'GraphHDLevel': GraphHDLevelEncoder
     }
     
     try:
@@ -100,16 +100,27 @@ def main():
                         help='Directorio de datos')
     parser.add_argument('--dim', type=int, default=10000, 
                         help='Dimensión de hipervectores')
-    parser.add_argument('--n_rep', type=int, default=100, 
+    parser.add_argument('--n_rep', type=int, default=1, 
                         help='Número de repeticiones por experimento')
     parser.add_argument('--workers', type=int, default=None, 
                         help='Número de workers (default: CPU count)')
+    parser.add_argument('--datasets', type=str, nargs='+', default=None,
+                        help='Dataset(s) a ejecutar (default: todos). Ej: --datasets MUTAG PROTEINS')
+    parser.add_argument('--encoders', type=str, nargs='+', default=None,
+                        help='Encoder(s) a ejecutar (default: todos). Opciones: GraphHD GraphOrder GraphHDLevel')
+    parser.add_argument('--metrics', type=str, nargs='+', default=None,
+                        help='Métrica(s) de centralidad (default: todas). Opciones: pagerank degree closeness betweenness eigenvector katz')
     args = parser.parse_args()
 
-    # Configuración
-    datasets = ['MUTAG', 'PROTEINS', 'ENZYMES', 'NCI1', 'DD', 'PTC_FM']
-    encoders = ['GraphHD', 'GraphOrder', 'GraphHDLevelPerm']
-    metrics = ['pagerank', 'degree', 'closeness', 'betweenness', 'eigenvector', 'katz']
+    # Configuración - valores por defecto
+    all_datasets = ['MUTAG', 'PROTEINS', 'ENZYMES', 'NCI1', 'DD', 'PTC_FM']
+    all_encoders = ['GraphHD', 'GraphOrder', 'GraphHDLevel']
+    all_metrics = ['pagerank', 'degree', 'closeness', 'betweenness', 'eigenvector', 'katz']
+    
+    # Usar valores especificados o todos por defecto
+    datasets = args.datasets if args.datasets else all_datasets
+    encoders = args.encoders if args.encoders else all_encoders
+    metrics = args.metrics if args.metrics else all_metrics
     
     # Determinar número de workers
     n_workers = args.workers or multiprocessing.cpu_count()

@@ -1,7 +1,7 @@
 import os
 import argparse
 from src.dataset_loader import load_tudataset
-from src.encoders import GraphHDEncoder, GraphOrderEncoder, GraphHDLevelEncoder, GraphOrderLevelEncoder
+from src.encoders import GraphHDEncoder, GraphHDOrderEncoder, GraphHDLevelEncoder
 from src.experiments import run_experiment
 from src.visualization import generate_results_table, plot_comparison, plot_times
 
@@ -27,9 +27,8 @@ def main():
     
     encoders = {
         'GraphHD': GraphHDEncoder(dim=args.dim),
-        'GraphOrder': GraphOrderEncoder(dim=args.dim),
-        'GraphHDLevel': GraphHDLevelEncoder(dim=args.dim),
-        'GraphOrderLevel': GraphOrderLevelEncoder(dim=args.dim)
+        'GraphOrder': GraphHDOrderEncoder(dim=args.dim),
+        'GraphHDLevel': GraphHDLevelEncoder(dim=args.dim)
     }
     
     all_results = []
