@@ -1,6 +1,6 @@
 # GraphHD: Graph Classification with Hyperdimensional Computing
 
-This repository contains the implementation of **GraphHD** and its variants for graph classification using Hyperdimensional Computing (HDC). The code supports multiple centrality-based encoding methods and provides a flexible benchmarking framework.
+This repository contains the implementation of **GraphHD** and variants for graph classification proposed in **Sica&Vazquez (2025)** using Hyperdimensional Computing (HDC). The code supports multiple centrality-based encoding methods and provides a flexible benchmarking framework.
 
 ## Reference
 
@@ -9,6 +9,10 @@ This implementation is based on the following papers:
 - **Original GraphHD**: Morris, C., et al. (2022). "GraphHD: Efficient graph classification using hyperdimensional computing." *arXiv preprint arXiv:2205.07826*.
 
 - **GraphHD Variants**: Vazquez, G. & Sica, I. (October 2025). "Exploring Centrality Measures and Encoding Variants for Graph Classification in Hyperdimensional Computing." *51 CLEI*.
+
+
+## Supplementary material
+File final_benchmark_results.csv contains the results of the experiments of Sica&Vazquez (2025).
 
 ## Implemented Methods
 
@@ -28,7 +32,6 @@ A simplified variant that:
 ### 3. **GraphHD-Level**
 An enhanced variant that:
 - Uses level-based hypervector libraries
-- Applies permutation operations for edge encoding
 - Maps centrality values to continuous levels
 
 ## Installation
@@ -218,6 +221,11 @@ This project is available for academic and research purposes.
 
 Contributions are welcome! Please feel free to submit issues or pull requests.
 
+## Acknowledgement
+
+We gratefully thank to Agencia Nacional de Investigación e Innovación (ANII-Uruguay) for funding this work through grant number FCE-1-2023-1-176242.
+
 ## Contact
 
 For questions or collaborations, please contact the authors through the CLEI 2025 conference proceedings.
+
