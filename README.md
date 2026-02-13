@@ -1,6 +1,6 @@
 # GraphHD: Graph Classification with Hyperdimensional Computing
 
-This repository contains the implementation of **GraphHD** and its variants for graph classification using Hyperdimensional Computing (HDC). The code supports multiple centrality-based encoding methods and provides a flexible benchmarking framework.
+This repository contains the implementation of **GraphHD** and variants for graph classification proposed in **Sica&Vazquez (2025)** using Hyperdimensional Computing (HDC). The code supports multiple centrality-based encoding methods and provides a flexible benchmarking framework.
 
 ## Reference
 
