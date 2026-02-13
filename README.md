@@ -213,19 +213,10 @@ If you use this code in your research, please cite:
 }
 ```
 
-## License
-
-This project is available for academic and research purposes.
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit issues or pull requests.
-
 ## Acknowledgement
 
 We gratefully thank to Agencia Nacional de Investigación e Innovación (ANII-Uruguay) for funding this work through grant number FCE-1-2023-1-176242.
 
 ## Contact
 
-For questions or collaborations, please contact the authors through the CLEI 2025 conference proceedings.
-
+gustavo.vazquez@ucu.edu.uy
